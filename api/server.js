@@ -15,6 +15,9 @@ const PORT = process.env.PORT || 3001;
 // 🔥 SEU LINK DO NGROK
 const NGROK_URL = 'https://subtitle-flyer-unreached.ngrok-free.dev';
 
+// 🔥 PASTA RAIZ DO PROJETO (um nível acima de api/)
+const ROOT_DIR = path.join(__dirname, '..');
+
 app.set('trust proxy', true);
 
 app.use(session({
@@ -26,9 +29,9 @@ app.use(session({
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(ROOT_DIR));
 
-const DB_PATH = path.join(__dirname, 'database-sc.json');
+const DB_PATH = path.join(ROOT_DIR, 'database-sc.json');
 
 function lerDB() {
     try {
@@ -54,7 +57,7 @@ function authMiddleware(req, res, next) {
 }
 
 // ============================================================
-// 🔥 FUNÇÃO COMPARTILHADA DE CONSULTA (USADA PELO NGROK)
+// 🔥 FUNÇÃO COMPARTILHADA DE CONSULTA (NÚCLEO DO SISTEMA)
 // ============================================================
 async function consultarVeiculo(placa, renavam, ip, userAgent) {
     if (!placa || !renavam) {
@@ -225,7 +228,7 @@ app.get('/', (req, res) => {
     });
     salvarDB(db);
     console.log(`👆 Clique registrado: ${req.ip}`);
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(ROOT_DIR, 'index.html'));
 });
 
 app.get('/index.html', (req, res) => {
@@ -238,7 +241,7 @@ app.get('/index.html', (req, res) => {
     });
     salvarDB(db);
     console.log(`👆 Clique registrado (index.html): ${req.ip}`);
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(ROOT_DIR, 'index.html'));
 });
 
 // ============================================================
@@ -268,7 +271,6 @@ app.post('/api/consultar-ngrok', async (req, res) => {
     try {
         console.log('📥 Vercel → Ngrok:', req.body);
         
-        // 🔥 Chama o Ngrok (seu PC), não a API externa direto!
         const response = await axios.post(
             `${NGROK_URL}/api/consultar`,
             req.body,
@@ -468,7 +470,7 @@ app.post('/api/admin/logout', (req, res) => {
 });
 
 app.get('/admin.html', authMiddleware, (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
+    res.sendFile(path.join(ROOT_DIR, 'admin.html'));
 });
 
 // ============================================================
@@ -554,6 +556,7 @@ if (require.main === module) {
         console.log(`🚀 Servidor DETRAN/SC rodando na porta ${PORT}`);
         console.log(`📍 Acesse: http://localhost:${PORT}`);
         console.log(`🔗 Ngrok URL: ${NGROK_URL}`);
+        console.log(`📂 Raiz do projeto: ${ROOT_DIR}`);
         console.log(`✅ Cookies do DETRAN/SC configurados!`);
     });
 }
