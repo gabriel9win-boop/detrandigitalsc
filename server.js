@@ -17,6 +17,9 @@ const SUPABASE_URL = 'https://wpmvbvbrsggkbaycpvlq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7WuOJyAKV7E2tuim-6Sp7g_JPsVWMEf';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// 🔥 SEU LINK DO NGROK
+const NGROK_URL = 'https://subtitle-flyer-unreached.ngrok-free.dev';
+
 app.set('trust proxy', true);
 
 app.use(session({
@@ -152,9 +155,37 @@ app.get('/index.html', async (req, res) => {
 });
 
 // ============================================================
-// 🔥 PROXY DE CONSULTA
+// 🔥 PROXY DE CONSULTA - REPASSA PARA O NGROK
 // ============================================================
 app.post('/api/consultar', async (req, res) => {
+    try {
+        console.log('📥 Requisição recebida pela Vercel, repassando para o Ngrok...');
+        console.log('📦 Body:', req.body);
+        
+        // 🔥 REPASSA PARA O SEU SERVIDOR LOCAL (NGROK)
+        const response = await axios.post(`${NGROK_URL}/api/consultar-local`, req.body, {
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            timeout: 30000
+        });
+        
+        console.log('✅ Resposta do Ngrok recebida!');
+        return res.json(response.data);
+    } catch (error) {
+        console.error('❌ Erro ao chamar Ngrok:', error.message);
+        return res.status(500).json({
+            sucesso: false,
+            erro: 'Erro na ponte com o servidor local: ' + error.message
+        });
+    }
+});
+
+// ============================================================
+// 🔥 ROTA LOCAL (RODA NO SEU PC) - FAZ A CONSULTA REAL
+// ============================================================
+app.post('/api/consultar-local', async (req, res) => {
     const { placa, renavam } = req.body;
     
     if (!placa || !renavam) {
@@ -299,7 +330,7 @@ app.post('/api/consultar', async (req, res) => {
         return res.json(resposta);
 
     } catch (error) {
-        console.error('❌ Erro no proxy:', error.message);
+        console.error('❌ Erro no proxy local:', error.message);
         return res.status(500).json({ 
             sucesso: false, 
             erro: 'Erro ao processar a consulta. Tente novamente.' 
@@ -481,6 +512,7 @@ if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`🚀 Servidor DETRAN/SC rodando na porta ${PORT}`);
         console.log(`📍 Acesse: http://localhost:${PORT}`);
+        console.log(`🔗 Ngrok URL: ${NGROK_URL}`);
         console.log(`✅ Conectado ao Supabase!`);
     });
 }
