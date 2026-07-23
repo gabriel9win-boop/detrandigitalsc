@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
@@ -12,13 +14,15 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 🔥 CONFIGURAÇÃO CORRETA DO SUPABASE
-const SUPABASE_URL = 'https://wpmbvbgrsggkbaycpvlq.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_7WuOJyAKV7E2tuim-6Sp7g_JPsVWMEf';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// 🔥 CONFIGURAÇÃO DO SUPABASE (LENDO DO .env)
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // 🔥 SEU LINK DO NGROK
 const NGROK_URL = 'https://subtitle-flyer-unreached.ngrok-free.dev';
+
+console.log(`✅ Conectado ao Supabase: ${SUPABASE_URL}`);
 
 app.set('trust proxy', true);
 
