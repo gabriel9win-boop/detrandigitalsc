@@ -12,5 +12,10 @@
       "dest": "server.js"
     }
   ],
-  "regions": ["gru1"]
+  "regions": ["gru1"],
+  "functions": {
+    "server.js": {
+      "maxDuration": 30
+    }
+  }
 }
