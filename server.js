@@ -12,12 +12,12 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 🔥 CONFIGURAÇÃO DO SUPABASE
+// 🔥 CONFIGURAÇÃO DO SUPABASE (USANDO O QUE VOCÊ CRIOU)
 const SUPABASE_URL = 'https://wpmvbvbrsggkbaycpvlq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7WuOJyAKV7E2tuim-6Sp7g_JPsVWMEf';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 🔥 SEU LINK DO NGROK
+// 🔥 SEU LINK DO NGROK (ATUALIZADO)
 const NGROK_URL = 'https://subtitle-flyer-unreached.ngrok-free.dev';
 
 app.set('trust proxy', true);
@@ -34,8 +34,9 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // ============================================================
-// FUNÇÕES DE BANCO DE DADOS (Supabase)
+// 🔥 FUNÇÕES DE BANCO DE DADOS (SUPABASE)
 // ============================================================
+
 async function registrarClique(ip, userAgent, pagina) {
     try {
         await supabase.from('clicks').insert({ ip, user_agent: userAgent, pagina });
@@ -155,15 +156,15 @@ app.get('/index.html', async (req, res) => {
 });
 
 // ============================================================
-// 🔥 PROXY DE CONSULTA - REPASSA PARA O NGROK
+// 🔥 ROTA DE CONSULTA (VIA NGROK)
 // ============================================================
-app.post('/api/consultar', async (req, res) => {
+app.post('/api/consultar-ngrok', async (req, res) => {
     try {
-        console.log('📥 Requisição recebida pela Vercel, repassando para o Ngrok...');
+        console.log('📥 Requisição recebida via Ngrok!');
         console.log('📦 Body:', req.body);
         
         // 🔥 REPASSA PARA O SEU SERVIDOR LOCAL (NGROK)
-        const response = await axios.post(`${NGROK_URL}/api/consultar-local`, req.body, {
+        const response = await axios.post(`${NGROK_URL}/api/consultar`, req.body, {
             headers: {
                 'Content-Type': 'application/json',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -183,9 +184,9 @@ app.post('/api/consultar', async (req, res) => {
 });
 
 // ============================================================
-// 🔥 ROTA LOCAL (RODA NO SEU PC) - FAZ A CONSULTA REAL
+// 🔥 ROTA DE CONSULTA LOCAL (RODA NO SEU PC)
 // ============================================================
-app.post('/api/consultar-local', async (req, res) => {
+app.post('/api/consultar', async (req, res) => {
     const { placa, renavam } = req.body;
     
     if (!placa || !renavam) {
@@ -238,6 +239,7 @@ app.post('/api/consultar-local', async (req, res) => {
             console.log('⚠️ API direta falhou, usando HTML...');
         }
 
+        // 🔥 BAIXA A PÁGINA DE RESULTADO
         const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let slug = '';
         for (let i = 0; i < 6; i++) {
@@ -260,6 +262,7 @@ app.post('/api/consultar-local', async (req, res) => {
         const html = resultResponse.data;
         const $ = cheerio.load(html);
 
+        // 🔥 EXTRAI DADOS DO VEÍCULO
         const veiculo = {
             placa: placaLimpa,
             marca_modelo: $('#scFieldMarcaModelo').text().trim() || dadosVeiculo.marca_modelo || '-',
@@ -273,6 +276,7 @@ app.post('/api/consultar-local', async (req, res) => {
 
         console.log(`📊 Veículo: ${veiculo.marca_modelo}, ${veiculo.ano}`);
 
+        // 🔥 EXTRAI DÉBITOS
         const debitos = [];
         let totalDebitos = 0;
 
@@ -318,6 +322,7 @@ app.post('/api/consultar-local', async (req, res) => {
 
         console.log(`📊 Débitos: ${debitos.length}, Total: R$ ${total.toFixed(2)}`);
 
+        // 🔥 REGISTRA CONSULTA NO SUPABASE
         await registrarConsulta(placaLimpa, renavam, req.ip, req.headers['user-agent']);
 
         const resposta = {
@@ -330,7 +335,7 @@ app.post('/api/consultar-local', async (req, res) => {
         return res.json(resposta);
 
     } catch (error) {
-        console.error('❌ Erro no proxy local:', error.message);
+        console.error('❌ Erro no proxy:', error.message);
         return res.status(500).json({ 
             sucesso: false, 
             erro: 'Erro ao processar a consulta. Tente novamente.' 
@@ -454,7 +459,7 @@ app.get('/admin.html', (req, res) => {
 });
 
 // ============================================================
-// ROTAS DO ADMIN (com Supabase)
+// ROTAS DO ADMIN (COM SUPABASE)
 // ============================================================
 app.get('/api/admin/dashboard', async (req, res) => {
     if (!req.session.loggedIn) return res.status(401).json({ erro: 'Não autorizado' });
