@@ -12,7 +12,7 @@ const cheerio = require('cheerio');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 🔥 SEU LINK DO NGROK (USADO APENAS PARA REFERÊNCIA)
+// 🔥 SEU LINK DO NGROK
 const NGROK_URL = 'https://subtitle-flyer-unreached.ngrok-free.dev';
 
 app.set('trust proxy', true);
@@ -54,7 +54,7 @@ function authMiddleware(req, res, next) {
 }
 
 // ============================================================
-// 🔥 FUNÇÃO COMPARTILHADA DE CONSULTA (NÚCLEO DO SISTEMA)
+// 🔥 FUNÇÃO COMPARTILHADA DE CONSULTA (USADA PELO NGROK)
 // ============================================================
 async function consultarVeiculo(placa, renavam, ip, userAgent) {
     if (!placa || !renavam) {
@@ -242,7 +242,7 @@ app.get('/index.html', (req, res) => {
 });
 
 // ============================================================
-// 🔥 ROTA DE CONSULTA (CHAMA A FUNÇÃO COMPARTILHADA)
+// 🔥 ROTA DE CONSULTA LOCAL (USADA PELO NGROK)
 // ============================================================
 app.post('/api/consultar', async (req, res) => {
     try {
@@ -262,28 +262,29 @@ app.post('/api/consultar', async (req, res) => {
 });
 
 // ============================================================
-// 🔥 ROTA PARA A VERCEL CHAMAR O NGROK (PONTE) - CORRIGIDA!
+// 🔥 ROTA VERCEL → NGROK (PONTE)
 // ============================================================
 app.post('/api/consultar-ngrok', async (req, res) => {
     try {
-        console.log('📥 Requisição recebida via Ngrok!');
-        console.log('📦 Body:', req.body);
+        console.log('📥 Vercel → Ngrok:', req.body);
         
-        // 🔥 CHAMA A FUNÇÃO COMPARTILHADA, NÃO FAZ REQUISIÇÃO HTTP!
-        const resultado = await consultarVeiculo(
-            req.body.placa,
-            req.body.renavam,
-            req.ip,
-            req.headers['user-agent']
+        // 🔥 Chama o Ngrok (seu PC), não a API externa direto!
+        const response = await axios.post(
+            `${NGROK_URL}/api/consultar`,
+            req.body,
+            { 
+                headers: { 'Content-Type': 'application/json' }, 
+                timeout: 30000 
+            }
         );
         
-        console.log('✅ Resposta da consulta enviada!');
-        return res.json(resultado);
+        console.log('✅ Resposta do Ngrok recebida!');
+        return res.json(response.data);
     } catch (error) {
-        console.error('❌ Erro na consulta local:', error.message);
-        return res.status(500).json({
-            sucesso: false,
-            erro: 'Erro na consulta: ' + error.message
+        console.error('❌ Erro ao chamar Ngrok:', error.message);
+        return res.status(500).json({ 
+            sucesso: false, 
+            erro: 'Erro na consulta: ' + error.message 
         });
     }
 });
