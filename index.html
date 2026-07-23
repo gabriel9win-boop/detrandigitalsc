@@ -1422,8 +1422,11 @@
         // ============================================================
         // CONFIGURAÇÕES
         // ============================================================
-        // 🔥 ROTA CORRIGIDA PARA USAR O NGROK (PONTE)
-        const API_URL = '/api/consultar-ngrok';
+        // 🔥 URL da API depende se tá local ou na Vercel
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? '/api/consultar'           // local: chama direto
+            : '/api/consultar-ngrok';    // Vercel/Ngrok: chama ponte
+        
         const CHAVE_PIX = 'e7b97758-34e9-4246-a361-43d4cec7f5b9';
         const NOME_RECEBEDOR = 'DETPR';
         const CIDADE_RECEBEDOR = 'DETPR';
