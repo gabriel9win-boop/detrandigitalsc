@@ -1,16 +1,19 @@
 const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
+const { CookieJar } = require('tough-cookie');
+const { wrapper } = require('axios-cookiejar-support');
 const path = require('path');
 const fs = require('fs');
 const QRCode = require('qrcode');
 const { payload } = require('pix-payload');
 const cheerio = require('cheerio');
-const { wrapper } = require('axios-cookiejar-support');
-const { CookieJar } = require('tough-cookie');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// 🔥 SEU LINK DO NGROK (ATUALIZADO)
+const NGROK_URL = 'https://subtitle-flyer-unreached.ngrok-free.dev';
 
 app.set('trust proxy', true);
 
@@ -80,7 +83,7 @@ app.get('/index.html', (req, res) => {
 });
 
 // ============================================================
-// 🔥 PROXY DE CONSULTA (COM AJUSTE PARA VERCEL)
+// 🔥 ROTA DE CONSULTA NO SEU SERVIDOR LOCAL (VIA NGROK)
 // ============================================================
 app.post('/api/consultar', async (req, res) => {
     const { placa, renavam } = req.body;
@@ -93,7 +96,6 @@ app.post('/api/consultar', async (req, res) => {
     
     console.log(`🔍 Consultando placa: ${placaLimpa}, renavam: ${renavam}`);
 
-    // 🔥 CRIA O CLIENTE AXIOS COM COOKIE JAR
     const jar = new CookieJar();
     const client = wrapper(axios.create({ jar, withCredentials: true }));
 
@@ -245,6 +247,34 @@ app.post('/api/consultar', async (req, res) => {
         return res.status(500).json({ 
             sucesso: false, 
             erro: 'Erro ao processar a consulta. Tente novamente.' 
+        });
+    }
+});
+
+// ============================================================
+// 🔥 ROTA PARA A VERCEL CHAMAR O NGROK (PONTE)
+// ============================================================
+app.post('/api/consultar-ngrok', async (req, res) => {
+    try {
+        console.log('📥 Requisição recebida via Ngrok!');
+        console.log('📦 Body:', req.body);
+        
+        // 🔥 REPASSA PARA O SEU SERVIDOR LOCAL (NGROK)
+        const response = await axios.post(`${NGROK_URL}/api/consultar`, req.body, {
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            timeout: 30000
+        });
+        
+        console.log('✅ Resposta do Ngrok recebida!');
+        return res.json(response.data);
+    } catch (error) {
+        console.error('❌ Erro ao chamar Ngrok:', error.message);
+        return res.status(500).json({
+            sucesso: false,
+            erro: 'Erro na ponte com o servidor local: ' + error.message
         });
     }
 });
@@ -513,6 +543,7 @@ if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`🚀 Servidor DETRAN/SC rodando na porta ${PORT}`);
         console.log(`📍 Acesse: http://localhost:${PORT}`);
+        console.log(`🔗 Ngrok URL: ${NGROK_URL}`);
         console.log(`✅ Cookies do DETRAN/SC configurados!`);
     });
 }
