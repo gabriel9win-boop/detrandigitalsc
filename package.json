@@ -1,19 +1,20 @@
 {
   "name": "detran-sc",
   "version": "1.0.0",
-  "description": "Proxy para consulta de débitos DETRAN/SC",
+  "description": "Consulta de débitos DETRAN/SC",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
+  "type": "commonjs",
   "dependencies": {
     "axios": "^1.13.5",
-    "axios-cookiejar-support": "^6.0.5",
-    "cheerio": "^1.2.0",
-    "express": "^5.2.1",
-    "express-session": "^1.19.0",
+    "axios-cookiejar-support": "^4.0.6",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
     "pix-payload": "^1.0.4",
-    "qrcode": "^1.5.4",
-    "tough-cookie": "^6.0.0"
+    "qrcode": "^1.5.3",
+    "tough-cookie": "^4.1.3",
+    "cheerio": "^1.0.0-rc.12"
   }
 }
