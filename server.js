@@ -12,7 +12,7 @@ const cheerio = require('cheerio');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 🔥 SEU LINK DO NGROK (ATUALIZADO)
+// 🔥 SEU LINK DO NGROK (USADO APENAS PARA REFERÊNCIA)
 const NGROK_URL = 'https://subtitle-flyer-unreached.ngrok-free.dev';
 
 app.set('trust proxy', true);
@@ -83,7 +83,7 @@ app.get('/index.html', (req, res) => {
 });
 
 // ============================================================
-// 🔥 ROTA DE CONSULTA NO SEU SERVIDOR LOCAL (VIA NGROK)
+// 🔥 ROTA DE CONSULTA LOCAL
 // ============================================================
 app.post('/api/consultar', async (req, res) => {
     const { placa, renavam } = req.body;
@@ -138,7 +138,6 @@ app.post('/api/consultar', async (req, res) => {
             console.log('⚠️ API direta falhou, usando HTML...');
         }
 
-        // 🔥 BAIXA A PÁGINA DE RESULTADO
         const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let slug = '';
         for (let i = 0; i < 6; i++) {
@@ -161,7 +160,6 @@ app.post('/api/consultar', async (req, res) => {
         const html = resultResponse.data;
         const $ = cheerio.load(html);
 
-        // 🔥 EXTRAI DADOS DO VEÍCULO
         const veiculo = {
             placa: placaLimpa,
             marca_modelo: $('#scFieldMarcaModelo').text().trim() || dadosVeiculo.marca_modelo || '-',
@@ -175,7 +173,6 @@ app.post('/api/consultar', async (req, res) => {
 
         console.log(`📊 Veículo: ${veiculo.marca_modelo}, ${veiculo.ano}`);
 
-        // 🔥 EXTRAI DÉBITOS
         const debitos = [];
         let totalDebitos = 0;
 
@@ -221,7 +218,6 @@ app.post('/api/consultar', async (req, res) => {
 
         console.log(`📊 Débitos: ${debitos.length}, Total: R$ ${total.toFixed(2)}`);
 
-        // 🔥 REGISTRA CONSULTA
         const db = lerDB();
         db.consultas.push({
             placa: placaLimpa,
@@ -252,15 +248,15 @@ app.post('/api/consultar', async (req, res) => {
 });
 
 // ============================================================
-// 🔥 ROTA PARA A VERCEL CHAMAR O NGROK (PONTE)
+// 🔥 ROTA PARA A VERCEL CHAMAR O NGROK (PONTE) - CORRIGIDA!
 // ============================================================
 app.post('/api/consultar-ngrok', async (req, res) => {
     try {
         console.log('📥 Requisição recebida via Ngrok!');
         console.log('📦 Body:', req.body);
         
-        // 🔥 REPASSA PARA O SEU SERVIDOR LOCAL (NGROK)
-        const response = await axios.post(`${NGROK_URL}/api/consultar`, req.body, {
+        // 🔥 CHAMA A ROTA LOCAL, NÃO O NGROK!
+        const response = await axios.post(`http://localhost:${PORT}/api/consultar`, req.body, {
             headers: {
                 'Content-Type': 'application/json',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -268,13 +264,13 @@ app.post('/api/consultar-ngrok', async (req, res) => {
             timeout: 30000
         });
         
-        console.log('✅ Resposta do Ngrok recebida!');
+        console.log('✅ Resposta da consulta local recebida!');
         return res.json(response.data);
     } catch (error) {
-        console.error('❌ Erro ao chamar Ngrok:', error.message);
+        console.error('❌ Erro na consulta local:', error.message);
         return res.status(500).json({
             sucesso: false,
-            erro: 'Erro na ponte com o servidor local: ' + error.message
+            erro: 'Erro na consulta local: ' + error.message
         });
     }
 });
