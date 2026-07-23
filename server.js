@@ -54,42 +54,11 @@ function authMiddleware(req, res, next) {
 }
 
 // ============================================================
-// ROTA PRINCIPAL
+// 🔥 FUNÇÃO COMPARTILHADA DE CONSULTA (NÚCLEO DO SISTEMA)
 // ============================================================
-app.get('/', (req, res) => {
-    const db = lerDB();
-    db.clicks.push({
-        timestamp: new Date().toISOString(),
-        ip: req.ip,
-        userAgent: req.headers['user-agent'],
-        pagina: 'index'
-    });
-    salvarDB(db);
-    console.log(`👆 Clique registrado: ${req.ip}`);
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.get('/index.html', (req, res) => {
-    const db = lerDB();
-    db.clicks.push({
-        timestamp: new Date().toISOString(),
-        ip: req.ip,
-        userAgent: req.headers['user-agent'],
-        pagina: 'index'
-    });
-    salvarDB(db);
-    console.log(`👆 Clique registrado (index.html): ${req.ip}`);
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// ============================================================
-// 🔥 ROTA DE CONSULTA LOCAL
-// ============================================================
-app.post('/api/consultar', async (req, res) => {
-    const { placa, renavam } = req.body;
-    
+async function consultarVeiculo(placa, renavam, ip, userAgent) {
     if (!placa || !renavam) {
-        return res.status(400).json({ erro: 'Placa e Renavam são obrigatórios' });
+        throw new Error('Placa e Renavam são obrigatórios');
     }
 
     const placaLimpa = placa.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -218,31 +187,76 @@ app.post('/api/consultar', async (req, res) => {
 
         console.log(`📊 Débitos: ${debitos.length}, Total: R$ ${total.toFixed(2)}`);
 
+        // 🔥 SALVA NO BANCO
         const db = lerDB();
         db.consultas.push({
             placa: placaLimpa,
             renavam: renavam,
             timestamp: new Date().toISOString(),
-            ip: req.ip,
-            userAgent: req.headers['user-agent'],
+            ip: ip,
+            userAgent: userAgent,
             pagamento_confirmado: false
         });
         salvarDB(db);
 
-        const resposta = {
+        return {
             sucesso: true,
             veiculo: veiculo,
             debitos: debitos,
             total: total
         };
 
-        return res.json(resposta);
-
     } catch (error) {
-        console.error('❌ Erro no proxy:', error.message);
-        return res.status(500).json({ 
-            sucesso: false, 
-            erro: 'Erro ao processar a consulta. Tente novamente.' 
+        console.error('❌ Erro na consulta:', error.message);
+        throw error;
+    }
+}
+
+// ============================================================
+// ROTA PRINCIPAL
+// ============================================================
+app.get('/', (req, res) => {
+    const db = lerDB();
+    db.clicks.push({
+        timestamp: new Date().toISOString(),
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+        pagina: 'index'
+    });
+    salvarDB(db);
+    console.log(`👆 Clique registrado: ${req.ip}`);
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/index.html', (req, res) => {
+    const db = lerDB();
+    db.clicks.push({
+        timestamp: new Date().toISOString(),
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+        pagina: 'index'
+    });
+    salvarDB(db);
+    console.log(`👆 Clique registrado (index.html): ${req.ip}`);
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ============================================================
+// 🔥 ROTA DE CONSULTA (CHAMA A FUNÇÃO COMPARTILHADA)
+// ============================================================
+app.post('/api/consultar', async (req, res) => {
+    try {
+        const resultado = await consultarVeiculo(
+            req.body.placa,
+            req.body.renavam,
+            req.ip,
+            req.headers['user-agent']
+        );
+        return res.json(resultado);
+    } catch (error) {
+        return res.status(500).json({
+            sucesso: false,
+            erro: error.message
         });
     }
 });
@@ -255,22 +269,21 @@ app.post('/api/consultar-ngrok', async (req, res) => {
         console.log('📥 Requisição recebida via Ngrok!');
         console.log('📦 Body:', req.body);
         
-        // 🔥 CHAMA A ROTA LOCAL, NÃO O NGROK!
-        const response = await axios.post(`http://localhost:${PORT}/api/consultar`, req.body, {
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            },
-            timeout: 30000
-        });
+        // 🔥 CHAMA A FUNÇÃO COMPARTILHADA, NÃO FAZ REQUISIÇÃO HTTP!
+        const resultado = await consultarVeiculo(
+            req.body.placa,
+            req.body.renavam,
+            req.ip,
+            req.headers['user-agent']
+        );
         
-        console.log('✅ Resposta da consulta local recebida!');
-        return res.json(response.data);
+        console.log('✅ Resposta da consulta enviada!');
+        return res.json(resultado);
     } catch (error) {
         console.error('❌ Erro na consulta local:', error.message);
         return res.status(500).json({
             sucesso: false,
-            erro: 'Erro na consulta local: ' + error.message
+            erro: 'Erro na consulta: ' + error.message
         });
     }
 });
