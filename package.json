@@ -2,9 +2,9 @@
   "name": "detran-sc",
   "version": "1.0.0",
   "description": "Consulta de débitos DETRAN/SC",
-  "main": "server.js",
+  "main": "api/server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node api/server.js"
   },
   "dependencies": {
     "axios": "^1.13.5",
